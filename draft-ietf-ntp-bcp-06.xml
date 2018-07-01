@@ -39,7 +39,7 @@
 <?rfc subcompact="no" ?>
 <!-- keep one blank line between list items -->
 <!-- end of list of popular I-D processing instructions -->
-<rfc category="bcp" docName="draft-ietf-ntp-bcp-04" ipr="trust200902">
+<rfc category="bcp" docName="draft-ietf-ntp-bcp-06" ipr="trust200902">
   <!-- category values: std, bcp, info, exp, and historic
      ipr values: full3667, noModification3667, noDerivatives3667
      you can add the attributes updates="NNNN" and obsoletes="NNNN" 
@@ -336,8 +336,8 @@
         the same bugs.  Are they using the same base chipset, regardless of
         whether or not the finished products are from different vendors?
         Are they all running the same version of firmware? Chipset and
-        firmware bugs can happen, but is often more difficult to diagnose
-        than a standard software bug.</t>
+        firmware bugs can happen, but they can be more difficult to diagnose
+        than application software bugs.</t>
 
         <t> A systemic problem with time from any satellite navigation
         service is possible and has happened.  Sunspot activity can render
@@ -457,7 +457,7 @@
 
 	<t>If you are a vendor who wishes to provide time service to your
 	customers or clients, consider joining the pool and providing a
-	"vendor zone" thru the pool project.</t>
+	"vendor zone" through the pool project.</t>
 
         <t>If you want to synchronize many computers, consider running your
         own NTP servers that are synchronized by the pool, and synchronizing
@@ -465,7 +465,7 @@
         the pool.</t>
 
         <t>If you would like to contribute a server with a static IP address
-        and a permanent Internet conenction to the pool, please consult the
+        and a permanent Internet connection to the pool, please consult the
         instructions at <eref target="http://www.pool.ntp.org/en/join.html">
         http://www.pool.ntp.org/en/join.html</eref> .</t>
       </section>
@@ -494,7 +494,7 @@
         introduced since the practice started in 1972 have been "positive"
         leap seconds, where a second is added to UTC.  NTP also supports a
         "negative" leap second, where a second is removed from UTC, should
-        that ever become necessary (or useful).</t>
+        that ever become necessary.</t>
 
         <t>While earlier versions of NTP contained some ambiguity regarding
         when a leap second that is broadcast by a server should be applied
@@ -632,7 +632,7 @@
         <section title="Pre-Shared Key Approach">
           <t>This approach applies a symmetric key for the calculation of
           the MAC, which protects authenticity and integrity of the
-          exchanged packets for a association.  NTP does not provide a
+          exchanged packets for an association.  NTP does not provide a
           mechanism for the exchange of the keys between the associated
           nodes.  Therefore, for each association, keys have to be exchanged
           securely by external means.  It is recommended that each
@@ -660,7 +660,7 @@
           should only be readable by the NTP process.  Different keys are
           added line by line to the key file.</t>
 
-          <t>A NTP client establishes a protected association by appending
+          <t>An NTP client establishes a protected association by appending
           the option "key keyid" to the server statement in the NTP
           configuration file:</t>
 
@@ -693,13 +693,12 @@
       </section>
 		
 	<section title="Network Time Security">
-          <t> Work has begun on an enhanced replacement for Autokey, which
+          <t> Work is in progress on an enhanced replacement for Autokey, which
           is called
-          <xref target="NTS">Network Time Security (NTS)</xref>.  NTS was
-	  published in the summer of 2013. As of October 2016, this effort
-	  was at draft #15, and about to begin 'final call'.  The first
-	  unicast implementation of NTS was started in the summer of 2015
-	  and is expected to be released in early 2017.</t>
+          <xref target="NTSFORNTP">Network Time Security (NTS)</xref>.  As 
+		  of December 2017, this effort was at draft #10, and in in the 
+		  'final call' process.  Readers are encouraged to adopt its
+		  mechanisms.</t>
         </section>
 
 		
@@ -739,11 +738,11 @@
            provides timing information to other hosts may additionally log
            and drop incoming mode 3 timing queries from unexpected sources.
            Note well that the easiest way to monitor ntpd's status is to
-           send it a mode 3 query.  A much better appropach might be to
+           send it a mode 3 query.  A much better approach might be to
            filter mode 3 queries at the edge, or make sure mode 3 queries
-           are allowed from trusted systems or networks.</t>
+           are allowed only from trusted systems or networks.</t>
 
-           <t>An "leaf-node host" is host that is using NTP solely for the
+           <t>A "leaf-node host" is a host that is using NTP solely for the
            purpose of adjusting its own system time.  Such a host is not
            expected to provide time to other hosts, and relies exclusively
            on NTP's basic mode to take time from a set of servers. (That is,
@@ -824,7 +823,7 @@
           <t>"Bogus packets" - A packet whose origin timestamp does not
           match the value that expected by the client.</t>
 
-          <t>"Zero origin packet" - A packet with a origin timestamp set to
+          <t>"Zero origin packet" - A packet with an origin timestamp set to
           zero <xref target="CVE-2015-8138"></xref>.</t>
 
           <t>A packet with an invalid cryptographic MAC <xref target="CCR16">
@@ -836,9 +835,37 @@
 
         <t>Also, Kiss-o'-Death (KoD) packets can be used in denial of
         service attacks.  Thus, the observation of even just one KoD packet
-        with a high poll value (e.g. poll>10) could be sign that the client
-        is under attack.
+        with a high poll value could be sign that the client
+        is under attack. See <xref target="KoD"></xref> for more information.
         </t>
+      </section>
+
+      <section anchor="KoD" title="KISS Packets">
+        <t>The "Kiss-o'-Death" (KoD) packet is a rate limiting mechanism
+        where a server can tell a misbehaving client to "back off" its query
+        rate.  It is important for all NTP devices to respect these packets
+        and back off when asked to do so by a server.  It is even more
+        important for an embedded device, which may not have exposed a
+        control interface for NTP.</t>
+
+        <t>That said, a client must only accept a KoD packet if it has a valid
+        origin timestamp. Once a RATE packet is accepted, the client should 
+        increase its poll interval value (thus decreasing its polling rate) up 
+        to a reasonable maximum. This maximum can vary by implementation but 
+        should not exceed a poll interval value of 13 (2 hours). The mechanism 
+        to determine how much to increase the poll interval value is undefined 
+        in <xref target="RFC5905">RFC 5905</xref>. If the client uses the poll
+        interval value sent by the server in the KoD packet, it must not simply
+        accept any value. Using large interval values may open a vector for a 
+        denial-of-service attack that causes the client to stop querying its 
+        server <xref target="NDSS16"></xref>.</t>
+
+        <t>The KoD mechanism relies on clients behaving properly in order to
+        be effective.  Some clients ignore the KoD packet entirely, and
+        other poorly-implemented clients might unintentionally increase
+        their poll rate and simulate a denial of service attack.  Server
+        administrators should be prepared for this and take measures outside
+        of the NTP protocol to drop packets from misbehaving clients.</t>
       </section>
 
       <section title="Broadcast Mode Should Only Be Used On Trusted Networks">
@@ -859,9 +886,15 @@
         trust each other.  Broadcast mode should only be run from within a 
         trusted network.</t>
 
-	<t>Starting with ntp-4.2.8p7 the ntp.keys file accepts an optional
-	4th column, a comma-separated list of IPs that are allowed to serve
-	time.  Use this feature.</t>
+	<t>Starting with ntp-4.2.8p7 the ntp.keys file accepts an optional 4th 
+        column, a comma-separated list of IPs that are allowed to serve time. 
+        Use this feature.  Note, however, that an adversarial client that knows
+        the symmetric broadcast key could still easily spoof its source IP to an
+        IP that is allowed to serve time. (This is easy to do because the origin
+        timestamp on broadcast mode packets is not validated by the client. By
+        contrast, client/server and symmetric modes do require origin timestamp 
+        validation, making it more difficult to spoof packets <xref target="CCR16">
+        </xref>.</t> 
       </section>
 
       <section title="Symmetric Mode Should Only Be Used With Trusted Peers">
@@ -927,22 +960,6 @@
 	involve embedded devices, on the Wikipedia page
 	for <eref target="https://en.wikipedia.org/wiki/NTP_server_misuse_and_abuse">
 	NTP Server Misuse and Abuse</eref>. </t>
-      </section>
-
-      <section title="KISS Packets">
-        <t>The "Kiss-o'-Death" (KoD) packet is a rate limiting mechanism
-        where a server can tell a misbehaving client to "back off" its query
-        rate.  It is important for all NTP devices to respect these packets
-        and back off when asked to do so by a server.  It is even more
-        important for an embedded device, which may not have exposed a
-        control interface for NTP.</t>
-
-        <t>The KoD mechanism relies on clients behaving properly in order to
-        be effective.  Some clients ignore the KoD packet entirely, and
-        other poorly-implemented clients might unintentionally increase
-        their poll rate and simulate a denial of service attack.  Server
-        administrators should be prepared for this and take measures outside
-        of the NTP protocol to drop packets from misbehaving clients.</t>
       </section>
 
       <section title="Server configuration">
@@ -1047,13 +1064,11 @@
       adminstrator concerned with security should be concerned with how the
       current time gets into their system. </t>
 
-      <t><xref target="NTS"/> is an Internet-Draft of a collection of
-      methods to secure time transfer over networks.
-      <xref target="NTSFORNTP"/> is an Internet-Draft that applies the
-      methods in <xref target="NTS"/> specifically to NTP.  At the time of
-      this writing, these are still drafts.  Readers are encourages to check
-      the status of these drafts, and make use of the methods they
-      describe.</t>
+      <t>
+      <xref target="NTSFORNTP"/> is an Internet-Draft that specifies the
+	  Network Time Security (NTS) mechanism and applies it specifically to 
+	  NTP.  Readers are encouraged to check the status of the draft, and 
+	  make use of the methods it describes.</t>
     </section>
   </middle>
 
@@ -1194,7 +1209,6 @@ Matthew Van Gundy. JANUARY 19, 2016
 http://www.talosintel.com/reports/TALOS-2016-0078/
 -->
 
-<!-- NTS I-D -->
       <reference anchor="CVE-2015-8139" target="http://www.talosintel.com/reports/TALOS-2016-0078">
         <front>
           <title>NETWORK TIME PROTOCOL NTPQ AND NTPDC ORIGIN TIMESTAMP DISCLOSURE VULNERABILITY</title>
@@ -1204,37 +1218,6 @@ http://www.talosintel.com/reports/TALOS-2016-0078/
         </front>
       </reference>
 	  
-	  <reference anchor="NTS">
-		<front>
-          <title>Network Time Security</title>
-          <author initials='D' surname='Sibold' fullname='Dieter Sibold'>
-            <organization />
-          </author>
-
-          <author initials='S' surname='Roettger' fullname='Stephen Roettger'>
-            <organization />
-          </author>
-
-          <author initials='K' surname='Teichel' fullname='Kristof Teichel'>
-            <organization />
-          </author>
-
-          <date month='September' day='22' year='2016' />
-
-          <abstract><t>This document describes Network Time Security (NTS),
-          a collection of measures that enable secure time synchronization
-          with time servers using protocols like the Network Time Protocol
-          (NTP) or the Precision Time Protocol (PTP).  Its design considers
-          the special requirements of precise timekeeping which are
-          described in Security Requirements of Time Protocols in Packet
-          Switched Networks [RFC7384].</t></abstract>
-
-        </front>
-
-        <seriesInfo name='Internet-Draft' value='draft-ietf-ntp-network-time-security-15' />
-        <format type='TXT'
-          target='http://www.ietf.org/internet-drafts/draft-ietf-ntp-network-time-security-15.txt' />
-      </reference>
 
 <!-- NTS for NTP I-D -->
 
@@ -1254,18 +1237,18 @@ http://www.talosintel.com/reports/TALOS-2016-0078/
             <organization />
           </author>
 
-          <date month='September' day='22' year='2016' />
+          <date month='October' day='30' year='2017' />
 
-          <abstract><t>This document describes how to use the measures
-          described in the Network Time Security (NTS) specification to
-          secure time synchronization with servers using the Network Time
-          Protocol (NTP).</t></abstract>
+          <abstract><t>This memo specifies Network Time Security (NTS), a 
+		  mechanism for using Transport Layer Security (TLS) and Authenticated
+		  Encryption with Associated Data (AEAD) to provide cryptographic 
+		  security for the Network Time Protocol.</t></abstract>
 
           </front>
 
-        <seriesInfo name='Internet-Draft' value='draft-ietf-ntp-using-nts-for-ntp-06' />
+        <seriesInfo name='Internet-Draft' value='draft-ietf-ntp-using-nts-for-ntp-10' />
         <format type='TXT'
-            target='http://www.ietf.org/internet-drafts/draft-ietf-ntp-using-nts-for-ntp-06.txt' />
+            target=' https://www.ietf.org/id/draft-ietf-ntp-using-nts-for-ntp-10.txt'/>
       </reference>
 
     </references> 
